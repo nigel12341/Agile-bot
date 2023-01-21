@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ChannelType } = require("discord.js");
-const { getFirestore, collection, updateDoc, doc, increment } = require("firebase/firestore");
+const { getFirestore, collection, updateDoc, doc, increment, getDoc } = require("firebase/firestore");
 const { initializeApp } = require ("firebase/app");
 
 module.exports = {
@@ -13,22 +13,43 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('close')
-                .setDescription('Close open ticket')),
+                .setDescription('Close open ticket'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('setup')
+                .setDescription('Setup ticket system by entering the category id')
+                .addStringOption(option =>
+                    option.setName('categoryid')
+                        .setDescription('Category to create tickets in')
+                        .setRequired(true))),
 
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
-
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsFPkrCVt2w5vjzZ-JaajZvIjwSLfRwwE",
+            authDomain: "agile-bot-2003.firebaseapp.com",
+            projectId: "agile-bot-2003",
+            storageBucket: "agile-bot-2003.appspot.com",
+            messagingSenderId: "1014532189070",
+            appId: "1:1014532189070:web:5a0c45449e27bc068312df"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
         if (subcommand === 'new') {
             // Your web app's Firebase configuration
-            const firebaseConfig = {
-                apiKey: "AIzaSyAsFPkrCVt2w5vjzZ-JaajZvIjwSLfRwwE",
-                authDomain: "agile-bot-2003.firebaseapp.com",
-                projectId: "agile-bot-2003",
-                storageBucket: "agile-bot-2003.appspot.com",
-                messagingSenderId: "1014532189070",
-                appId: "1:1014532189070:web:5a0c45449e27bc068312df"
-            };
-            const app = initializeApp(firebaseConfig);
+
+            const docRef = doc(db, "Guilds", interaction.guild.id);
+            const docSnap = await getDoc(docRef);
+
+            if(docSnap.data().ticketCat === "none") {
+                await interaction.reply("Please set up the ticket system first");
+                return;
+            } else if (interaction.guild.channels.cache.find(channel => channel.id === docSnap.data().ticketCat) === undefined) {
+                await interaction.reply("Can not find the category, please set up the ticket system again");
+                return;
+            }
+            
+
             const channel = await interaction.guild.channels.create({
                 name: `ticket-${interaction.user.username}`,
                 type: ChannelType.GuildText,
@@ -48,7 +69,7 @@ module.exports = {
 
             interaction.reply({ content: `You can view your ticket at ${channel}`, ephemeral: true});
 
-            const db = getFirestore(app);
+
 
             const ticketsCountRef = doc(db, "Guilds", interaction.guild.id, "stats", "tickets");
 
@@ -56,14 +77,32 @@ module.exports = {
                 numbTicketsOpend: increment(1)
             });
 
-        } else if (subcommand === 'close') {
+        }
+        else if (subcommand === 'close') {
             const channel = interaction.channel;
             if (channel.name.startsWith('ticket-')) {
                 await channel.delete();
                 interaction.reply('Ticket closed!');
+
+                const ticketsCountRef = doc(db, "Guilds", interaction.guild.id, "stats", "tickets");
+
+                await updateDoc(ticketsCountRef, {
+                    numbTicketsClosed: increment(1)
+                })
             } else {
                 interaction.reply('You can only close ticket channels!');
             }
+        }
+        else if (subcommand === 'setup') {
+            const category = interaction.options.getString('categoryid');
+
+            const guildRef = doc(db, "Guilds", interaction.guild.id);
+
+            await updateDoc(guildRef, {
+                ticketCat: category
+            });
+
+            interaction.reply(`Ticket system setup in ${category}`);
         }
     },
 };
