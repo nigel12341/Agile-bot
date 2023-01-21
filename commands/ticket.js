@@ -41,20 +41,22 @@ module.exports = {
             const docRef = doc(db, "Guilds", interaction.guild.id);
             const docSnap = await getDoc(docRef);
 
-            if(docSnap.data().ticketCat === "none") {
+            const ticketCategory = docSnap.data().ticketCat;
+
+            if(ticketCategory === "none") {
                 await interaction.reply("Please set up the ticket system first");
                 return;
-            } else if (interaction.guild.channels.cache.find(channel => channel.id === docSnap.data().ticketCat) === undefined) {
+            } else if (interaction.guild.channels.cache.find(channel => channel.id === ticketCategory) === undefined) {
                 await interaction.reply("Can not find the category, please set up the ticket system again");
                 return;
             }
-            
+
 
             const channel = await interaction.guild.channels.create({
                 name: `ticket-${interaction.user.username}`,
                 type: ChannelType.GuildText,
             });
-            await channel.setParent('1066071950281162812');
+            await channel.setParent(ticketCategory);
 
             await channel.permissionOverwrites.create(interaction.guild.id, [{
                 SendMessage: false,
