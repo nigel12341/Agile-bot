@@ -9,7 +9,8 @@ module.exports = {
         .setName("amount")
         .setDescription("The amount of messages to clear.")
         .setRequired(true)
-    ),
+    )
+      .setDMPermission(false),
   async execute(interaction) {
     try {
       if (!interaction.member.permissions.has("MANAGE_MESSAGES")) {

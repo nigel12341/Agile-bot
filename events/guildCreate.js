@@ -1,5 +1,5 @@
-const { Events } = require("discord.js");
-const { getFirestore, collection, setDoc, doc, increment, updateDoc} = require("firebase/firestore");
+const { Events, ChannelType } = require("discord.js");
+const { getFirestore, setDoc, doc} = require("firebase/firestore");
 const { initializeApp } = require ("firebase/app");
 
 module.exports = {
@@ -17,7 +17,12 @@ module.exports = {
         const db = getFirestore(app)
 
         await setDoc(doc(db, "Guilds", guild.id), {
-            ticketCat: "none",
+            ticketCat: null,
+            setup: false,
+            prefix: "/",
+            staffRoleId: null,
+            adminRoleId: null,
+            moderatorRoleId: null
         });
 
         const createDocumentRef = doc(db, "Guilds", guild.id, "stats", "tickets");
@@ -26,6 +31,17 @@ module.exports = {
             numbTicketsOpend: 0,
             numbTicketsClosed: 0,
         });
+
+        const channel = guild.channels.cache.find(
+            (c) => c.type === ChannelType.GuildText && c.permissionsFor(guild.members.me).has("SEND_MESSAGES")
+        );
+        // Do something with the channel
+
+        if(channel){
+            channel.send("Thanks for adding me to your server! To get started, use the /setup command in a channel. Please note this is required for the bot to function correctly! \n If you need help, use the /help command. \nIf you have already had this bot in the past you need to set it up again.")
+        } else {
+            console.log(`No channel found to send message to in ${guild.name}!`)
+        }
 
     },
 };

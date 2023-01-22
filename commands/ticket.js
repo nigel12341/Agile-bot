@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ChannelType } = require("discord.js");
-const { getFirestore, collection, updateDoc, doc, increment, getDoc } = require("firebase/firestore");
+const { getFirestore, updateDoc, doc, increment, getDoc } = require("firebase/firestore");
 const { initializeApp } = require ("firebase/app");
 
 module.exports = {
@@ -21,7 +21,8 @@ module.exports = {
                 .addStringOption(option =>
                     option.setName('categoryid')
                         .setDescription('Category to create tickets in')
-                        .setRequired(true))),
+                        .setRequired(true)))
+    .setDMPermission(false),
 
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
@@ -94,17 +95,6 @@ module.exports = {
             } else {
                 interaction.reply('You can only close ticket channels!');
             }
-        }
-        else if (subcommand === 'setup') {
-            const category = interaction.options.getString('categoryid');
-
-            const guildRef = doc(db, "Guilds", interaction.guild.id);
-
-            await updateDoc(guildRef, {
-                ticketCat: category
-            });
-
-            interaction.reply(`Ticket system setup in ${category}`);
         }
     },
 };
