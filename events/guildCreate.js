@@ -26,10 +26,18 @@ module.exports = {
         });
 
         const createDocumentRef = doc(db, "Guilds", guild.id, "stats", "tickets");
+        const createModStatsRef = doc(db, "Guilds", guild.id, "stats", "moderation");
 
         await setDoc(createDocumentRef, {
             numbTicketsOpend: 0,
             numbTicketsClosed: 0,
+        });
+        await setDoc(createModStatsRef, {
+            bans: 0,
+            kicks: 0,
+            mutes: 0,
+            clears: 0,
+            clearMessages: 0,
         });
 
         const channel = guild.channels.cache.find(
