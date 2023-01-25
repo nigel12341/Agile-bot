@@ -25,14 +25,12 @@ module.exports = {
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         if (subcommand === 'new') {
-            // Your web app's Firebase configuration
-
             const docRef = doc(db, "Guilds", interaction.guild.id);
             const docSnap = await getDoc(docRef);
 
             const ticketCategory = docSnap.data().ticketCat;
 
-            if(ticketCategory === "none" || ticketCategory === null) {
+            if(ticketCategory === "none" || ticketCategory === null || docSnap.data().staffRoleId === "none" || docSnap.data().staffRoleId === null) {
                 await interaction.reply("Please set up the ticket system first by running /setup");
                 return;
             } else if (interaction.guild.channels.cache.find(channel => channel.id === ticketCategory) === undefined) {
@@ -52,6 +50,11 @@ module.exports = {
                 ViewChannel: false,
             }]);
             await channel.permissionOverwrites.create(interaction.user, [{
+                SendMessage: true,
+                ViewChannel: true,
+            }]);
+
+            await channel.permissionOverwrites.create(docSnap.data().staffRoleId, [{
                 SendMessage: true,
                 ViewChannel: true,
             }]);

@@ -91,8 +91,8 @@ module.exports = {
 
           const url = await getDownloadURL(ref(storage, interaction.member.id + "/" + attachment.name))
 
-          interaction.member.send({content: `Here is the transcript for this ticket: \nYou can also view/download it from this link: ${url}`, files: [attachment]})
-              .catch(() => interaction.followUp({content: `Here is the transcript for this ticket: \nYou can also view/download it from this link: ${url}`, files: [attachment], ephemeral: true}));
+          interaction.member.send({content: `Here is the transcript for this ticket: \nYou can also view it from this link: ${url}`})
+              .catch(() => interaction.followUp({content: `Here is the transcript for this ticket: \nYou can also view/download it from this link: ${url}`, ephemeral: true}));
 
           await interaction.followUp({content: `I have sent you the transcript in your DMs!`, ephemeral: true});
       }

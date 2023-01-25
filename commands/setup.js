@@ -18,7 +18,7 @@ module.exports = {
     .addRoleOption(role =>
         role.setName('staffrole')
             .setDescription('Role for staff')
-            .setRequired(false))
+            .setRequired(true))
       .addRoleOption(role =>
           role.setName('moderatorrole')
               .setDescription('Role for moderators')
