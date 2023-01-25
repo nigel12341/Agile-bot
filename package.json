@@ -1,9 +1,10 @@
 {
-  "name": "bitwo-bot",
+  "name": "agilebot",
   "version": "1.0.0",
-  "description": "Discord Bot for bitwo channel",
+  "description": "Discord Bot",
   "main": "bot.js",
   "dependencies": {
+    "discord-html-transcripts": "^3.1.3",
     "discord.js": "^14.7.1",
     "dotenv": "^16.0.3",
     "firebase": "^9.16.0",
@@ -15,12 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bitwoio/bitwo-bot.git"
+    "url": "git+https://github.com/nigel12341/Agile-bot.git"
   },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/bitwoio/bitwo-bot/issues"
-  },
-  "homepage": "https://github.com/bitwoio/bitwo-bot#readme"
+  "author": ""
 }

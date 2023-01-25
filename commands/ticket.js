@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ChannelType } = require("discord.js");
+const { SlashCommandBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events } = require("discord.js");
 const { getFirestore, updateDoc, doc, increment, getDoc } = require("firebase/firestore");
 const { initializeApp } = require ("firebase/app");
 
@@ -10,18 +10,6 @@ module.exports = {
             subcommand
                 .setName('new')
                 .setDescription('Create a new ticket'))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('close')
-                .setDescription('Close open ticket'))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('setup')
-                .setDescription('Setup ticket system by entering the category id')
-                .addStringOption(option =>
-                    option.setName('categoryid')
-                        .setDescription('Category to create tickets in')
-                        .setRequired(true)))
     .setDMPermission(false),
 
     async execute(interaction) {
@@ -44,8 +32,8 @@ module.exports = {
 
             const ticketCategory = docSnap.data().ticketCat;
 
-            if(ticketCategory === "none") {
-                await interaction.reply("Please set up the ticket system first");
+            if(ticketCategory === "none" || ticketCategory === null) {
+                await interaction.reply("Please set up the ticket system first by running /setup");
                 return;
             } else if (interaction.guild.channels.cache.find(channel => channel.id === ticketCategory) === undefined) {
                 await interaction.reply("Can not find the category, please set up the ticket system again");
@@ -68,11 +56,17 @@ module.exports = {
                 ViewChannel: true,
             }]);
 
-            await channel.send('Thank you for contacting support!');
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('ticketClose')
+                        .setLabel('Close ticket!')
+                        .setStyle(ButtonStyle.Danger),
+                );
+
+            await channel.send({content: 'Thank you for contacting support!', components: [row]});
 
             interaction.reply({ content: `You can view your ticket at ${channel}`, ephemeral: true});
-
-
 
             const ticketsCountRef = doc(db, "Guilds", interaction.guild.id, "stats", "tickets");
 
@@ -80,21 +74,6 @@ module.exports = {
                 numbTicketsOpend: increment(1)
             });
 
-        }
-        else if (subcommand === 'close') {
-            const channel = interaction.channel;
-            if (channel.name.startsWith('ticket-')) {
-                await channel.delete();
-                interaction.reply('Ticket closed!');
-
-                const ticketsCountRef = doc(db, "Guilds", interaction.guild.id, "stats", "tickets");
-
-                await updateDoc(ticketsCountRef, {
-                    numbTicketsClosed: increment(1)
-                })
-            } else {
-                interaction.reply('You can only close ticket channels!');
-            }
         }
     },
 };
