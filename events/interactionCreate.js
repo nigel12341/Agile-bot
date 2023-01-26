@@ -76,7 +76,6 @@ module.exports = {
 
           const metadata = {
               contentType: 'text/html',
-              createdAt: serverTimestamp()
           };
 
           const attachment = await discordTranscripts.createTranscript(channel, {
@@ -87,14 +86,22 @@ module.exports = {
 
             // Create a reference
           const transscriptFileRef = ref(storage, interaction.member.id + "/" + attachment.name);
-          await uploadBytes(transscriptFileRef, attachment.attachment, metadata);
+          await uploadBytes(transscriptFileRef, attachment.attachment, metadata).then(async () => {
+              const url = await getDownloadURL(ref(storage, interaction.member.id + "/" + attachment.name))
 
-          const url = await getDownloadURL(ref(storage, interaction.member.id + "/" + attachment.name))
+              interaction.member.send({content: `Here is the transcript for this ticket: \nYou can also view it from this link: ${url}`}).then(async () => {
+                  await interaction.followUp({content: `I have sent you the transcript in your DMs!`, ephemeral: true});
+              }).catch(() => interaction.followUp({
+                  content: `Here is the transcript for this ticket: \nYou can also view/download it from this link: ${url}`,
+                  ephemeral: true
+              }));
+          }).catch(err => {
+                return interaction.followUp({content: `Error uploading file: ${err}`, ephemeral: true})
+          })
 
-          interaction.member.send({content: `Here is the transcript for this ticket: \nYou can also view it from this link: ${url}`})
-              .catch(() => interaction.followUp({content: `Here is the transcript for this ticket: \nYou can also view/download it from this link: ${url}`, ephemeral: true}));
 
-          await interaction.followUp({content: `I have sent you the transcript in your DMs!`, ephemeral: true});
+
+
       }
 
     }

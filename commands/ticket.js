@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events } = require("discord.js");
+const { SlashCommandBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } = require("discord.js");
 const { getFirestore, updateDoc, doc, increment, getDoc } = require("firebase/firestore");
 const { initializeApp } = require ("firebase/app");
 
@@ -10,6 +10,22 @@ module.exports = {
             subcommand
                 .setName('new')
                 .setDescription('Create a new ticket'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('add')
+                .setDescription('Adds a user to the ticket')
+                .addUserOption(option =>
+                    option.setName('user')
+                        .setDescription('User to add')
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('remove')
+                .setDescription('remove a user to the ticket')
+                .addUserOption(option =>
+                    option.setName('user')
+                        .setDescription('User to remove')
+                        .setRequired(true)))
     .setDMPermission(false),
 
     async execute(interaction) {
@@ -24,10 +40,10 @@ module.exports = {
         };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        if (subcommand === 'new') {
-            const docRef = doc(db, "Guilds", interaction.guild.id);
-            const docSnap = await getDoc(docRef);
+        const docRef = doc(db, "Guilds", interaction.guild.id);
+        const docSnap = await getDoc(docRef);
 
+        if (subcommand === 'new') {
             const ticketCategory = docSnap.data().ticketCat;
 
             if(ticketCategory === "none" || ticketCategory === null || docSnap.data().staffRoleId === "none" || docSnap.data().staffRoleId === null) {
@@ -42,22 +58,22 @@ module.exports = {
             const channel = await interaction.guild.channels.create({
                 name: `ticket-${interaction.user.username}`,
                 type: ChannelType.GuildText,
+                parent: ticketCategory,
+                permissionOverwrites: [
+                    {
+                        id: interaction.guild.id,
+                        deny: [PermissionsBitField.Flags.ViewChannel],
+                    },
+                    {
+                        id: interaction.user.id,
+                        allow: [PermissionsBitField.Flags.ViewChannel],
+                    },
+                    {
+                        id: docSnap.data().staffRoleId,
+                        allow: [PermissionsBitField.Flags.ViewChannel],
+                    }
+                ],
             });
-            await channel.setParent(ticketCategory);
-
-            await channel.permissionOverwrites.create(interaction.guild.id, [{
-                SendMessage: false,
-                ViewChannel: false,
-            }]);
-            await channel.permissionOverwrites.create(interaction.user, [{
-                SendMessage: true,
-                ViewChannel: true,
-            }]);
-
-            await channel.permissionOverwrites.create(docSnap.data().staffRoleId, [{
-                SendMessage: true,
-                ViewChannel: true,
-            }]);
 
             const row = new ActionRowBuilder()
                 .addComponents(
@@ -77,6 +93,38 @@ module.exports = {
                 numbTicketsOpend: increment(1)
             });
 
+        }
+        if (subcommand === 'add') {
+            const user = interaction.options.getUser('user');
+            const channel = interaction.channel;
+
+            if (channel.parentId === docSnap.data().ticketCat && channel.name.startsWith('ticket-')) {
+                await channel.permissionOverwrites.create(user, {
+                    ViewChannel: true,
+                    SendMessages: true,
+                    AttachFiles: true,
+                    ReadMessageHistory: true,
+                });
+                await interaction.reply(`Added ${user} to the ticket`);
+            } else {
+                await interaction.reply("This command can only be used in a ticket");
+            }
+        }
+        if (subcommand === 'remove') {
+            const user = interaction.options.getUser('user');
+            const channel = interaction.channel;
+
+            if (channel.parentId === docSnap.data().ticketCat && channel.name.startsWith('ticket-')) {
+                await channel.permissionOverwrites.create(user, {
+                    ViewChannel: false,
+                    SendMessages: false,
+                    AttachFiles: false,
+                    ReadMessageHistory: false,
+                });
+                await interaction.reply(`Removed ${user.username} to the ticket`);
+            } else {
+                await interaction.reply("This command can only be used in a ticket");
+            }
         }
     },
 };
