@@ -81,12 +81,13 @@ module.exports = {
           const attachment = await discordTranscripts.createTranscript(channel, {
               poweredBy: false,
               saveImages: true,
-              filename: `ticket ${interaction.member.id} in ${interaction.guild.name}.html`
+              filename: `ticket ${interaction.guild.id} at ${Date.now()}.html`
           });
 
             // Create a reference
           const transscriptFileRef = ref(storage, interaction.member.id + "/" + attachment.name);
           await uploadBytes(transscriptFileRef, attachment.attachment, metadata).then(async () => {
+
               const url = await getDownloadURL(ref(storage, interaction.member.id + "/" + attachment.name))
 
               interaction.member.send({content: `Here is the transcript for this ticket: \nYou can also view it from this link: ${url}`}).then(async () => {

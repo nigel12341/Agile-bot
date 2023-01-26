@@ -9,7 +9,11 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('new')
-                .setDescription('Create a new ticket'))
+                .setDescription('Create a new ticket')
+                .addStringOption(option =>
+                    option.setName('reason')
+                        .setDescription('Reason for the ticket')
+                        .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('add')
@@ -84,6 +88,7 @@ module.exports = {
                 );
 
             await channel.send({content: 'Thank you for contacting support!', components: [row]});
+            await channel.send({content: `Reason: ${interaction.options.getString('reason')}`});
 
             interaction.reply({ content: `You can view your ticket at ${channel}`, ephemeral: true});
 
