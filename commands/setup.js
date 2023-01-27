@@ -10,15 +10,16 @@ module.exports = {
           role.setName('adminrole')
               .setDescription('Role for administrators (these will be able to use the bot web dashboard)')
               .setRequired(true))
-      .addChannelOption(option =>
-          option.setName('ticketcategory')
+      .addChannelOption(channel =>
+          channel.setName('ticketcategory')
               .setDescription('Category to create tickets in')
               .setRequired(true)
               .addChannelTypes(ChannelType.GuildCategory))
       .addChannelOption(channel =>
           channel.setName('logs')
                 .setDescription('Channel for logs.')
-                .setRequired(true))
+                .setRequired(true)
+                .addChannelTypes(ChannelType.GuildText))
     .addRoleOption(role =>
         role.setName('staffrole')
             .setDescription('Role for staff')
@@ -34,15 +35,15 @@ module.exports = {
       .addRoleOption(role =>
             role.setName('helperrole')
                 .setDescription('Role for helpers')
-                .setRequired(false))
+                .setRequired(true))
       .addBooleanOption(option =>
-          option.setName('AllowHelpersInTickets')
+          option.setName('allowhelpersintickets')
             .setDescription('Allow helpers to see tickets (default: false)')
-            .setRequired(false))
+            .setRequired(true))
       .addBooleanOption(option =>
-          option.setName('AllowModeratorToBan')
+          option.setName('allowmoderatortoban')
             .setDescription('Allow moderators to ban users (default: false)')
-            .setRequired(false))
+            .setRequired(true))
       .setDefaultMemberPermissions(0)
       .setDMPermission(false),
   async execute(interaction) {
@@ -54,6 +55,9 @@ module.exports = {
         });
       }
 
+        await pushSetupDataToFirebase(interaction);
+
+        await interaction.reply({content: "Setup complete!"});
 
     } catch (error) {
         console.error(error);
@@ -66,16 +70,15 @@ module.exports = {
 };
 
 
-//TODO: add the values to the promises!
 async function pushSetupDataToFirebase(interaction){
-    const category = interaction.options.getChannel("ticketcategory");
+    const ticketcategory = interaction.options.getChannel("ticketcategory");
     const staffRole = interaction.options.getRole("staffrole");
     const moderatorRole = interaction.options.getRole("moderatorrole");
     const adminRole = interaction.options.getRole("adminrole");
     const muteRole = interaction.options.getRole("muterole");
     const helperRole = interaction.options.getRole("helperrole");
-    const allowHelpersInTickets = interaction.options.getBoolean("AllowHelpersInTickets");
-    const allowModeratorToBan = interaction.options.getBoolean("AllowModeratorToBan");
+    const allowHelpersInTickets = interaction.options.getBoolean("allowhelpersintickets");
+    const allowModeratorToBan = interaction.options.getBoolean("allowmoderatortoban");
     const logs = interaction.options.getChannel("logs");
 
     const firebaseConfig = {
@@ -89,60 +92,40 @@ async function pushSetupDataToFirebase(interaction){
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const createTicketStatsRef = doc(db, "Guilds", guild.id, "stats", "tickets");
-    const createModStatsRef = doc(db, "Guilds", guild.id, "stats", "moderation");
-    const createSettingsCatagoriesRef = doc(db, "Guilds", guild.id, "settings", "catagories");
-    const createSettingsAccessRef = doc(db, "Guilds", guild.id, "settings", "access");
-    const createSettingsRolesRef = doc(db, "Guilds", guild.id, "settings", "roles");
-    const createSettingsChannelsRef = doc(db, "Guilds", guild.id, "settings", "channels");
-    const createfeaturesEnabledSettingsRef = doc(db, "Guilds", guild.id, "settings", "featuresEnabled");
-    const createSetupRef = doc(db, "Guilds", guild.id);
+    const createSettingsCatagoriesRef = doc(db, "Guilds", interaction.guild.id, "settings", "catagories");
+    const createSettingsAccessRef = doc(db, "Guilds", interaction.guild.id, "settings", "access");
+    const createSettingsRolesRef = doc(db, "Guilds", interaction.guild.id, "settings", "roles");
+    const createSettingsChannelsRef = doc(db, "Guilds", interaction.guild.id, "settings", "channels");
+    const createSetupRef = doc(db, "Guilds", interaction.guild.id);
 
-    const promise1 = setDoc(createTicketStatsRef, {
-        numbTicketsOpend: 0,
-        numbTicketsClosed: 0,
+
+    const promise1 = setDoc(createSettingsCatagoriesRef, {
+        ticketId: ticketcategory.id
     });
 
-    const promise2 = setDoc(createModStatsRef, {
-        bans: 0,
-        kicks: 0,
-        mutes: 0,
-        clears: 0,
-        clearMessages: 0,
+    const promise2 = setDoc(createSettingsAccessRef, {
+        helperTicket: allowHelpersInTickets,
+        moderatorBan: allowModeratorToBan
     });
 
-    const promise3 = setDoc(createSettingsCatagoriesRef, {
-        ticketId: "none"
+    const promise3 = setDoc(createSettingsRolesRef, {
+        adminRoleId: adminRole.id,
+        moderatorRoleId: moderatorRole.id,
+        helperRoleId: helperRole.id,
+        mutedRoleId: muteRole.id,
+        staffRoleId: staffRole.id,
     });
 
-    const promise4 = setDoc(createSettingsAccessRef, {
-        helperTicket: false,
-        moderatorBan: false
+    const promise4 = setDoc(createSettingsChannelsRef, {
+        logsId: logs.id
     });
 
-    const promise5 = setDoc(createSettingsRolesRef, {
-        adminRoleId: "none",
-        moderatorRoleId: "none",
-        helperRoleId: "none",
-        mutedRoleId: "none",
-        staffRoleId: "none",
+    const promise5 = setDoc(createSetupRef, {
+        setup: true,
     });
 
-    const promise6 = setDoc(createSettingsChannelsRef, {
-        logsId: "none"
-    });
-
-    const promise7 = setDoc(createfeaturesEnabledSettingsRef, {
-        logs: false,
-        tickets: true
-    })
-
-    const promise8 = setDoc(createSetupRef, {
-        setup: false,
-    });
-
-    await Promise.all([promise1, promise2, promise3, promise4, promise5, promise6, promise7, promise8]).catch((error) => {
-        channel.send("Error setting up database, please try again later. If this error persists, please contact the developer.")
+    await Promise.all([promise1, promise2, promise3, promise4, promise5]).catch((error) => {
+        interaction.channel.send("Error setting up database, please try again later. If this error persists, please contact the developer.")
         return console.error("Error writing document: ", error);
     });
 }
