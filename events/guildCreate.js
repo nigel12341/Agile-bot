@@ -1,5 +1,5 @@
 const { Events, ChannelType } = require("discord.js");
-const { getFirestore, setDoc, doc} = require("firebase/firestore");
+const { getFirestore, writeBatch, doc} = require("firebase/firestore");
 const { initializeApp } = require ("firebase/app");
 
 module.exports = {
@@ -40,51 +40,54 @@ async function setupDatabase(guild, channel) {
     const createfeaturesEnabledSettingsRef = doc(db, "Guilds", guild.id, "settings", "featuresEnabled");
     const createSetupRef = doc(db, "Guilds", guild.id);
 
-    const promise1 = setDoc(createTicketStatsRef, {
+    // Get a new write batch
+    const batch = writeBatch(db);
+
+    batch.set(createTicketStatsRef, {
         numbTicketsOpend: 0,
         numbTicketsClosed: 0,
-    });
+    })
 
-    const promise2 = setDoc(createModStatsRef, {
+    batch.set(createModStatsRef, {
         bans: 0,
         kicks: 0,
         mutes: 0,
         clears: 0,
         clearMessages: 0,
-    });
+    })
 
-    const promise3 = setDoc(createSettingsCatagoriesRef, {
+    batch.set(createSettingsCatagoriesRef, {
         ticketId: "none"
-    });
+    })
 
-    const promise4 = setDoc(createSettingsAccessRef, {
+    batch.set(createSettingsAccessRef, {
         helperTicket: false,
         moderatorBan: false
-    });
+    })
 
-    const promise5 = setDoc(createSettingsRolesRef, {
+    batch.set(createSettingsRolesRef, {
         adminRoleId: "none",
         moderatorRoleId: "none",
         helperRoleId: "none",
         mutedRoleId: "none",
         staffRoleId: "none",
-    });
-
-    const promise6 = setDoc(createSettingsChannelsRef, {
-        logsId: "none"
-    });
-
-    const promise7 = setDoc(createfeaturesEnabledSettingsRef, {
-        logs: false,
-        tickets: true
     })
 
-    const promise8 = setDoc(createSetupRef, {
-            setup: false,
-        });
+    batch.set(createSettingsChannelsRef, {
+        logsId: "none"
+    })
 
-    await Promise.all([promise1, promise2, promise3, promise4, promise5, promise6, promise7, promise8]).catch((error) => {
-        channel.send("Error setting up database, please try again later. If this error persists, please contact the developer.")
-        return console.error("Error writing document: ", error);
-    });
+    batch.set(createfeaturesEnabledSettingsRef, {
+        logs: false,
+        tickets: true,
+        moderation: false,
+        automod: false,
+    })
+
+    batch.set(createSetupRef, {
+        setup: false,
+    })
+
+    // Commit the batch
+    await batch.commit();
 }

@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, ChannelType } = require("discord.js");
 const {initializeApp} = require("firebase/app");
-const {getFirestore, doc, updateDoc, setDoc} = require("firebase/firestore");
+const {getFirestore, doc, writeBatch} = require("firebase/firestore");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -44,6 +44,22 @@ module.exports = {
           option.setName('allowmoderatortoban')
             .setDescription('Allow moderators to ban users (default: false)')
             .setRequired(true))
+      .addBooleanOption(option =>
+          option.setName('moderation')
+              .setDescription('Enable moderation features')
+              .setRequired(true))
+      .addBooleanOption(option =>
+          option.setName('automod')
+              .setDescription('Enable automod features')
+              .setRequired(true))
+      .addBooleanOption(option =>
+          option.setName('enablelogs')
+              .setDescription('Enable logs')
+              .setRequired(true))
+      .addBooleanOption(option =>
+          option.setName('tickets')
+              .setDescription('Enable tickets')
+              .setRequired(true))
       .setDefaultMemberPermissions(0)
       .setDMPermission(false),
   async execute(interaction) {
@@ -80,6 +96,10 @@ async function pushSetupDataToFirebase(interaction){
     const allowHelpersInTickets = interaction.options.getBoolean("allowhelpersintickets");
     const allowModeratorToBan = interaction.options.getBoolean("allowmoderatortoban");
     const logs = interaction.options.getChannel("logs");
+    const moderation = interaction.options.getBoolean("moderation");
+    const automod = interaction.options.getBoolean("automod");
+    const enablelogs = interaction.options.getBoolean("enablelogs");
+    const tickets = interaction.options.getBoolean("tickets");
 
     const firebaseConfig = {
         apiKey: "AIzaSyAsFPkrCVt2w5vjzZ-JaajZvIjwSLfRwwE",
@@ -96,19 +116,22 @@ async function pushSetupDataToFirebase(interaction){
     const createSettingsAccessRef = doc(db, "Guilds", interaction.guild.id, "settings", "access");
     const createSettingsRolesRef = doc(db, "Guilds", interaction.guild.id, "settings", "roles");
     const createSettingsChannelsRef = doc(db, "Guilds", interaction.guild.id, "settings", "channels");
+    const createSettingsFeaturesRef = doc(db, "Guilds", interaction.guild.id, "settings", "featuresEnabled");
     const createSetupRef = doc(db, "Guilds", interaction.guild.id);
 
+    // Get a new write batch
+    const batch = writeBatch(db);
 
-    const promise1 = setDoc(createSettingsCatagoriesRef, {
+    batch.update(createSettingsCatagoriesRef, {
         ticketId: ticketcategory.id
     });
 
-    const promise2 = setDoc(createSettingsAccessRef, {
+    batch.update(createSettingsAccessRef, {
         helperTicket: allowHelpersInTickets,
         moderatorBan: allowModeratorToBan
     });
 
-    const promise3 = setDoc(createSettingsRolesRef, {
+    batch.update(createSettingsRolesRef, {
         adminRoleId: adminRole.id,
         moderatorRoleId: moderatorRole.id,
         helperRoleId: helperRole.id,
@@ -116,16 +139,20 @@ async function pushSetupDataToFirebase(interaction){
         staffRoleId: staffRole.id,
     });
 
-    const promise4 = setDoc(createSettingsChannelsRef, {
+    batch.update(createSettingsChannelsRef, {
         logsId: logs.id
     });
 
-    const promise5 = setDoc(createSetupRef, {
+    batch.update(createSetupRef, {
         setup: true,
     });
 
-    await Promise.all([promise1, promise2, promise3, promise4, promise5]).catch((error) => {
-        interaction.channel.send("Error setting up database, please try again later. If this error persists, please contact the developer.")
-        return console.error("Error writing document: ", error);
+    batch.update(createSettingsFeaturesRef, {
+        moderation: moderation,
+        automod: automod,
+        logs: enablelogs,
+        tickets: tickets
     });
+
+    await batch.commit();
 }
