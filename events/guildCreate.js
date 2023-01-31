@@ -1,4 +1,4 @@
-const { Events, ChannelType } = require("discord.js");
+const { Events, ChannelType, PermissionsBitField} = require("discord.js");
 const { getFirestore, writeBatch, doc} = require("firebase/firestore");
 const { initializeApp } = require ("firebase/app");
 
@@ -6,11 +6,12 @@ module.exports = {
     name: Events.GuildCreate,
     async execute(guild) {
         const channel = guild.channels.cache.find(
-            (c) => c.type === ChannelType.GuildText && c.permissionsFor(guild.members.me).has("SEND_MESSAGES")
+            (c) => c.type === ChannelType.GuildText && c.permissionsFor(guild.members.me).has(PermissionsBitField.SendMessages)
         );
         // Do something with the channel
         await setupDatabase(guild, channel);
         if(channel){
+            console.log(`Added ${guild.name} to the database!`)
             channel.send("Thanks for adding me to your server! **To get started, use the /setup command in a channel.** Please note this is required for the bot to function correctly! \nIf you need help, use the /help command. \nIf you have already had this bot in the past you still need to set it up again.")
         } else {
             console.log(`No channel found to send message to in ${guild.name}!`)
