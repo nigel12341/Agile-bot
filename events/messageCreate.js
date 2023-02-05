@@ -1,5 +1,7 @@
 const { Events } = require("discord.js");
 
+//TODO: wait for message content intent to work
+
 module.exports = {
     name: Events.MessageCreate,
     once: false,
