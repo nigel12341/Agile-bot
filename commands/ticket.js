@@ -44,13 +44,15 @@ module.exports = {
         };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const docRef = doc(db, "Guilds", interaction.guild.id);
-        const docSnap = await getDoc(docRef);
+        const ticketCatRef = doc(db, "Guilds", interaction.guild.id, "settings", "catagories");
+        const rolesRef = doc(db, "Guilds", interaction.guild.id, "settings", "roles");
+        const ticketCatSnap = await getDoc(ticketCatRef);
+        const rolesSnap = await getDoc(rolesRef);
 
         if (subcommand === 'new') {
-            const ticketCategory = docSnap.data().ticketCat;
+            const ticketCategory = ticketCatSnap.data().ticketId;
 
-            if(ticketCategory === "none" || ticketCategory === null || docSnap.data().staffRoleId === "none" || docSnap.data().staffRoleId === null) {
+            if(ticketCategory === "none" || ticketCategory === null || rolesSnap.data().staffRoleId === "none" || rolesSnap.data().staffRoleId === null) {
                 await interaction.reply("Please set up the ticket system first by running /setup");
                 return;
             } else if (interaction.guild.channels.cache.find(channel => channel.id === ticketCategory) === undefined) {
@@ -73,7 +75,7 @@ module.exports = {
                         allow: [PermissionsBitField.Flags.ViewChannel],
                     },
                     {
-                        id: docSnap.data().staffRoleId,
+                        id: rolesSnap.data().staffRoleId,
                         allow: [PermissionsBitField.Flags.ViewChannel],
                     }
                 ],
@@ -103,7 +105,7 @@ module.exports = {
             const user = interaction.options.getUser('user');
             const channel = interaction.channel;
 
-            if (channel.parentId === docSnap.data().ticketCat && channel.name.startsWith('ticket-')) {
+            if (channel.parentId === ticketCatSnap.data().ticketId && channel.name.startsWith('ticket-')) {
                 await channel.permissionOverwrites.create(user, {
                     ViewChannel: true,
                     SendMessages: true,
@@ -119,7 +121,7 @@ module.exports = {
             const user = interaction.options.getUser('user');
             const channel = interaction.channel;
 
-            if (channel.parentId === docSnap.data().ticketCat && channel.name.startsWith('ticket-')) {
+            if (channel.parentId === ticketCatSnap.data().ticketId && channel.name.startsWith('ticket-')) {
                 await channel.permissionOverwrites.create(user, {
                     ViewChannel: false,
                     SendMessages: false,
