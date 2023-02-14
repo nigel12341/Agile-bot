@@ -1,16 +1,13 @@
 const { Events } = require("discord.js");
 const {initializeApp} = require("firebase/app");
-const {getFirestore, doc, onSnapshot} = require("firebase/firestore");
-
-
-//TODO: wait for message content intent to work
+const {getFirestore, doc, getDoc} = require("firebase/firestore");
 
 module.exports = {
     name: Events.MessageCreate,
     once: false,
-    execute(message) {
-        if(message.author.bot) return;
-        if(message.author.me) return;
+    async execute(message) {
+        if (message.author.bot) return;
+        if (message.author.me) return;
         const firebaseConfig = {
             apiKey: "AIzaSyAsFPkrCVt2w5vjzZ-JaajZvIjwSLfRwwE",
             authDomain: "agile-bot-2003.firebaseapp.com",
@@ -23,15 +20,16 @@ module.exports = {
         const db = getFirestore(app);
         const badWordsRef = doc(db, "Guilds", message.guild.id, "settings", "badWordsFilter");
 
-        onSnapshot(badWordsRef, (doc) => {
-            if(!doc.exists()) return;
-            if(doc.data().toggle === false) return;
-            const badWords = doc.data().badWords;
-            if(badWords === undefined || badWords.length === 0) return;
-            if(badWords.includes(message.content.toLowerCase())) {
-                message.reply("Please don't use bad words.");
-                message.delete();
-            }
-        });
+        const badWords = await getDoc(badWordsRef);
+        const badWordsList = badWords.data().badWords;
+
+        if (!badWords.exists()) return;
+        if (badWords.data().toggle === false) return;
+        if (badWordsList === undefined || badWordsList.length === 0) return;
+        if (badWordsList.includes(message.content.toLowerCase())) {
+            message.channel.send({
+                content: `Please don't use bad words ${message.author}!`});
+            message.delete();
+        }
     },
 };
