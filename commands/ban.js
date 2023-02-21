@@ -53,10 +53,10 @@ module.exports = {
       if (i.customId === 'yesBanButton') {
         await i.deferUpdate();
         if(!interaction.guild.members.cache.get(target.id).bannable) return i.editReply({ content: '❎ I cannot ban this member.\nThis is possibly caused by the permissions setup incorrectly.', components: []});
+        await i.guild.members.ban(target, { reason: interaction.options.getString('reason') || `Kicked by ${interaction.user.username}` });
         await updateDoc(moderationStatsRef, {
           bans: increment(1)
         });
-        await i.guild.members.ban(target, { reason: interaction.options.getString('reason') || `Kicked by ${interaction.user.username}` });
         await i.editReply({ content: `✅ ${target.username} has been banned.`, components: [] });
       }
       if (i.customId === 'noBanButton') {
