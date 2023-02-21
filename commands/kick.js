@@ -40,7 +40,7 @@ module.exports = {
             if (i.customId === 'yesKickButton') {
                 await i.deferUpdate();
                 if(!interaction.guild.members.cache.get(target.id).kickable) return i.editReply({ content: '❎ I cannot kick this member.\nThis is possibly caused by the permissions setup incorrectly.', components: []});
-                await interaction.guild.members.kick(target, interaction.options.getString('reason') ? interaction.options.getString('reason') : `Kicked by ${interaction.user.username}`);
+                await interaction.guild.members.kick(target, interaction.options.getString('reason') || `Kicked by ${interaction.user.username}`);
                 await i.editReply({ content: `✅ ${target.username} has been kicked.`, components: [] });
             }
             if (i.customId === 'noKickButton') {
